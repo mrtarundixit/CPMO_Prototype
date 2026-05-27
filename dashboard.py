@@ -8,13 +8,18 @@ import google.generativeai as genai
 from prompts import MDM_STEWARD_PROMPT
 
 def get_ai_suggestion(row_data):
-    # Use the imported prompt template
-    prompt = MDM_STEWARD_PROMPT.format(
-        component=row_data['Component'], 
-        data_dict=row_data.to_dict()
-    )
-    response = model.generate_content(prompt)
-    return response.text
+    try:
+        prompt = MDM_STEWARD_PROMPT.format(
+            component=row_data['Component'], 
+            data_dict=row_data.to_dict()
+        )
+        response = model.generate_content(prompt)
+        return response.text
+    except Exception as e:
+        if "ResourceExhausted" in str(e):
+            return "ERROR: Rate limit exceeded. Please wait a few seconds and try again."
+        else:
+            return f"ERROR: {str(e)}"
 
 # 1. Initialize
 setup_db.init_db()
