@@ -1,5 +1,10 @@
 import sqlite3
 import pandas as pd
+import os
+import setup_db # assuming this script creates your database
+
+if not os.path.exists('cpmo.db'):
+    setup_db.create_tables() # Ensure this function exists in your setup_db.py
 
 # 1. Load data
 mdg = pd.read_csv('MDG_Master.csv')
