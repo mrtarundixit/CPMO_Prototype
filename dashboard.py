@@ -5,7 +5,7 @@ import google.generativeai as genai
 from sap_gateway import trigger_sap_integration # Importing our new gateway
 
 # 1. Config
-genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+genai.configure(api_key='AIzaSyDm8DpXYbmAUhhtARNCuIhygGO-z2I5aJo')
 model = genai.GenerativeModel('models/gemini-2.5-flash')
 try:
     model = genai.GenerativeModel('models/gemini-2.5-flash')
