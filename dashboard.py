@@ -1,59 +1,40 @@
 import streamlit as st
 import pandas as pd
 import sqlite3
+import os
+import setup_db
 import google.generativeai as genai
-from sap_gateway import trigger_sap_integration # Importing our new gateway
+from sap_gateway import trigger_sap_integration
 
-# 1. Config
-genai.configure(api_key='AIzaSyDm8DpXYbmAUhhtARNCuIhygGO-z2I5aJo')
+# 1. Initialize Database
+setup_db.init_db()
+
+# 2. Config
+API_KEY = "YOUR_AIzaSy_KEY_HERE" # Put your actual key here
+genai.configure(api_key=API_KEY)
 model = genai.GenerativeModel('models/gemini-2.5-flash')
-try:
-    model = genai.GenerativeModel('models/gemini-2.5-flash')
-except Exception as e:
-    st.error(f"Could not load model {'models/gemini-2.5-flash'}. Check your available models.")
 
-# 2. Database Connection
+# 3. Connection Helper
 def get_db_connection():
-    return sqlite3.connect('cpmo.db')
+    return sqlite3.connect(setup_db.DB_PATH)
 
-def log_audit(material_id, action):
-    conn = get_db_connection()
-    conn.execute("INSERT INTO audit_log (material_id, action, timestamp) VALUES (?, ?, ?)", 
-                 (material_id, action, pd.Timestamp.now()))
-    conn.commit()
-    conn.close()
+# 4. App Layout
+st.title("Enterprise Cognitive Product Master Orchestrator")
+tabs = st.tabs(["Operations Dashboard", "Data Steward Review", "Audit Trail"])
 
-# 3. Streamlit UI
-st.set_page_config(page_title="Enterprise CPD Orchestrator", layout="wide")
-st.title("🌐 Enterprise Cognitive Product Master Orchestrator")
-
-tabs = st.tabs(["📊 Operations Dashboard", "✅ Data Steward Review", "📜 Audit Trail"])
-
-with tabs[0]: # Executive Analytics
+with tabs[0]:
+    st.header("Operations Dashboard")
     df = pd.read_sql('SELECT * FROM materials', get_db_connection())
-    st.metric("Total Materials", len(df))
-    st.metric("Pending Remediation", len(df[df['status'] == 'PENDING']))
     st.dataframe(df)
+    
+    if st.button("Sync to SAP"):
+        trigger_sap_integration("ALL_MATERIALS")
 
-with tabs[1]: # Data Steward Review
-    pending = pd.read_sql("SELECT * FROM materials WHERE status='PENDING'", get_db_connection())
-    for index, row in pending.iterrows():
-        with st.expander(f"Review: {row['Material_ID']}"):
-            if st.button(f"Analyze {row['Material_ID']}", key=f"ai_{index}"):
-                resp = model.generate_content(f"Remediate {row['Material_ID']}")
-                st.info(resp.text)
-                if st.button("Approve & Execute SAP Update", key=f"exec_{index}"):
-                    # Execute Integration
-                    trigger_sap_integration(row['Material_ID'], resp.text)
-                    # Update DB
-                    conn = get_db_connection()
-                    conn.execute("UPDATE materials SET status='APPROVED' WHERE Material_ID=?", (row['Material_ID'],))
-                    conn.commit()
-                    conn.close()
-                    # Log Audit
-                    log_audit(row['Material_ID'], "APPROVED_AND_SENT_TO_SAP")
-                    st.success("Remediation completed and logged!")
-                    st.rerun()
+with tabs[1]:
+    st.header("Data Steward Review")
+    st.write("AI-driven suggestions for master data remediation will appear here.")
 
-with tabs[2]: # Audit Trail
-    st.dataframe(pd.read_sql("SELECT * FROM audit_log", get_db_connection()))
+with tabs[2]:
+    st.header("Audit Trail")
+    audit_df = pd.read_sql('SELECT * FROM audit_log', get_db_connection())
+    st.table(audit_df)
