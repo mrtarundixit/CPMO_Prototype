@@ -21,12 +21,12 @@ def get_ai_suggestion(row_data):
 setup_db.init_db()
 
 # 2. Hardcoded Key (Internal Prototype Only)
-genai.configure(api_key="AIzaSyC8mkCXVl7ooKvARAbg4JfsRoy0oVbU2Uo")
+genai.configure(api_key="AIzaSyBvi5P7i95k0d80-i_QYTAXWHGiFMaICmw")
+model_name = "gemini-2.5-flash"
 try:
-    # Use the full model string required by the current SDK
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    model = genai.GenerativeModel(model_name)
 except Exception as e:
-    st.error(f"Error initializing model: {e}")
+    st.error(f"Failed to load model {model_name}: {e}")
 
 def get_db_connection():
     return sqlite3.connect(setup_db.DB_PATH)
