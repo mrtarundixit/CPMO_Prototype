@@ -1,0 +1,4 @@
+{"material_id": "MAT-001", "action": "UPDATE", "value": "test", "timestamp": "2026-05-27T14:17:45.644927", "status": "QUEUED_FOR_ERP"}
+{"material_id": "MAT-001", "action": "UPDATE", "value": "test", "timestamp": "2026-05-27T14:17:53.644303", "status": "QUEUED_FOR_ERP"}
+{"material_id": "ALL_MATERIALS", "action": "UPDATE", "value": "BULK_UPDATE", "timestamp": "2026-05-27T14:18:02.629660", "status": "QUEUED_FOR_ERP"}
+{"material_id": "MAT-005", "action": "UPDATE", "value": "test", "timestamp": "2026-05-27T14:18:12.287714", "status": "QUEUED_FOR_ERP"}
