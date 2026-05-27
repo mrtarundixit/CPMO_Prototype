@@ -5,15 +5,14 @@ import setup_db
 from sap_gateway import trigger_sap_integration
 from datetime import datetime
 import google.generativeai as genai
+from prompts import MDM_STEWARD_PROMPT
 
 def get_ai_suggestion(row_data):
-    prompt = f"""
-    You are a Data Steward AI. Analyze this product data and suggest a corrected value for remediation.
-    Material: {row_data['Component']}
-    Current Data: {row_data.to_dict()}
-    Suggest the most appropriate 'UoM_or_Quantity' or 'Status' fix. 
-    Keep it concise.
-    """
+    # Use the imported prompt template
+    prompt = MDM_STEWARD_PROMPT.format(
+        component=row_data['Component'], 
+        data_dict=row_data.to_dict()
+    )
     response = model.generate_content(prompt)
     return response.text
 
