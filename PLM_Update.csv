@@ -1,0 +1,4 @@
+﻿Material_ID,Component,UoM_or_Quantity,Safety_Cert,Status_or_Review
+MAT-001,Corn Syrup,KG,N/A,Pending
+MAT-005,Cocoa Powder,100,N/A,V2.0
+MAT-009,FreshFarm_Global,N/A,Expired,Yes
