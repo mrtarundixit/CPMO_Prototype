@@ -10,7 +10,7 @@ from sap_gateway import trigger_sap_integration
 setup_db.init_db()
 
 # 2. Config
-API_KEY = "YOUR_AIzaSy_KEY_HERE" # Put your actual key here
+API_KEY = "AIzaSyDm8DpXYbmAUhhtARNCuIhygGO-z2I5aJo" # Put your actual key here
 genai.configure(api_key=API_KEY)
 model = genai.GenerativeModel('models/gemini-2.5-flash')
 
