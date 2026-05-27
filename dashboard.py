@@ -22,7 +22,11 @@ setup_db.init_db()
 
 # 2. Hardcoded Key (Internal Prototype Only)
 genai.configure(api_key="AIzaSyC8mkCXVl7ooKvARAbg4JfsRoy0oVbU2Uo")
-model = genai.GenerativeModel('gemini-2.5-flash')
+try:
+    # Use the full model string required by the current SDK
+    model = genai.GenerativeModel('gemini-1.5-flash')
+except Exception as e:
+    st.error(f"Error initializing model: {e}")
 
 def get_db_connection():
     return sqlite3.connect(setup_db.DB_PATH)
