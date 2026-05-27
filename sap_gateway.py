@@ -11,7 +11,7 @@ def trigger_sap_integration(material_id, new_value):
         "status": "QUEUED_FOR_ERP"
     }
     
-    # In production, this would be a requests.post() call
+    # Simulating an outbound queue for ERP/SAP
     with open("SAP_Outbound_Queue.json", "a") as f:
         f.write(json.dumps(payload) + "\n")
         
