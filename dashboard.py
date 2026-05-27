@@ -25,6 +25,19 @@ def log_audit(material_id, action):
 
 # 3. UI Layout
 st.title("Enterprise Cognitive Product Master Orchestrator")
+# Phase 1: Executive Metrics
+conn = get_db_connection()
+total_records = pd.read_sql("SELECT COUNT(*) as count FROM materials", conn).iloc[0]['count']
+pending_records = pd.read_sql("SELECT COUNT(*) as count FROM materials WHERE status = 'PENDING'", conn).iloc[0]['count']
+synced_records = pd.read_sql("SELECT COUNT(*) as count FROM materials WHERE status = 'SYNCED'", conn).iloc[0]['count']
+conn.close()
+
+col1, col2, col3 = st.columns(3)
+col1.metric("Total Materials", total_records)
+col2.metric("Pending Review", pending_records, delta_color="inverse")
+col3.metric("Successfully Synced", synced_records)
+
+st.divider() # Adds a clean visual separator
 tabs = st.tabs(["Operations Dashboard", "Data Steward Review", "Audit Trail"])
 
 with tabs[0]:
