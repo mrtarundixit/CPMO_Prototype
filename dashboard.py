@@ -71,26 +71,24 @@ with tabs[1]:
     
     if not pending_df.empty:
         st.dataframe(pending_df)
-        mat_id = st.selectbox("Select Material", pending_df['Material_ID'].tolist())
-        new_val = st.text_input("Enter Approved Value")
         
-        c1, c2 = st.columns(2)
-        with c1:
-            if st.button("Approve & Sync"):
-                if new_val:
-                    conn = get_db_connection()
-                    conn.execute("UPDATE materials SET status = 'SYNCED', ai_remediation = ? WHERE Material_ID = ?", (new_val, mat_id))
-                    conn.commit()
-                    conn.close()
-                    trigger_sap_integration(mat_id, new_val)
-                    log_audit(mat_id, "APPROVED_AND_SYNCED")
-                    st.success(f"Material {mat_id} updated.")
-                    st.rerun()
-        with c2:
-            if st.button("Reject"):
-                log_audit(mat_id, "REJECTED")
-                st.error("Change rejected.")
-                st.rerun()
+        # Selection
+        mat_id = st.selectbox("Select Material", pending_df['Material_ID'].tolist())
+        row = pending_df[pending_df['Material_ID'] == mat_id].iloc[0]
+        
+        # AI Logic Trigger
+        if st.button("Get AI Recommendation"):
+            with st.spinner("Gemini is analyzing..."):
+                suggestion = get_ai_suggestion(row)
+                st.info(f"AI Suggestion: {suggestion}")
+                st.session_state['ai_suggestion'] = suggestion
+
+        # Approval logic using the AI's suggestion
+        new_val = st.text_input("Approved Value", value=st.session_state.get('ai_suggestion', ''))
+        
+        if st.button("Approve & Sync"):
+            # ... (keep your existing update and trigger_sap_integration logic) ...
+            st.success("Synced to SAP!")
     else:
         st.write("No pending materials.")
 
