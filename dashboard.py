@@ -21,7 +21,7 @@ def get_ai_suggestion(row_data):
 setup_db.init_db()
 
 # 2. Hardcoded Key (Internal Prototype Only)
-genai.configure(api_key="AIzaSyDm8DpXYbmAUhhtARNCuIhygGO-z2I5aJo")
+genai.configure(api_key="AIzaSyC8mkCXVl7ooKvARAbg4JfsRoy0oVbU2Uo")
 model = genai.GenerativeModel('gemini-2.5-flash')
 
 def get_db_connection():
