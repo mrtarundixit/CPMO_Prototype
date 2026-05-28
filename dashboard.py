@@ -6,32 +6,51 @@ from sap_gateway import trigger_sap_integration
 from datetime import datetime
 import google.generativeai as genai
 from prompts import MDM_STEWARD_PROMPT
+from tenacity import retry, wait_exponential, stop_after_attempt, retry_if_exception_type
+from google.api_core import exceptions
 
-def get_ai_suggestion(row_data):
-    try:
-        prompt = MDM_STEWARD_PROMPT.format(
-            component=row_data['Component'], 
-            data_dict=row_data.to_dict()
-        )
-        response = model.generate_content(prompt)
-        return response.text
-    except Exception as e:
-        if "ResourceExhausted" in str(e):
-            return "ERROR: Rate limit exceeded. Please wait a few seconds and try again."
-        else:
-            return f"ERROR: {str(e)}"
-
-# 1. Initialize
+# 1. Initialize DB and Model
 setup_db.init_db()
 
-# 2. Hardcoded Key (Internal Prototype Only)
-genai.configure(api_key="AIzaSyBvi5P7i95k0d80-i_QYTAXWHGiFMaICmw")
-model_name = "gemini-2.5-flash"
+# REPLACE WITH A NEW, SECURE API KEY
+genai.configure(api_key="AIzaSyAdTQnsNY7nvUH8Hh0_KViS5RZhq6rA_8g")
+model_name = "gemini-1.5-flash"
+
 try:
     model = genai.GenerativeModel(model_name)
 except Exception as e:
     st.error(f"Failed to load model {model_name}: {e}")
 
+# 2. Resilient API Logic with Exponential Back-off
+@retry(
+    wait=wait_exponential(multiplier=1, min=2, max=10),
+    stop=stop_after_attempt(3),
+    retry=retry_if_exception_type(exceptions.ResourceExhausted)
+)
+def call_gemini_with_retry(prompt):
+    return model.generate_content(prompt)
+
+def get_ai_suggestion(row_data):
+    # Caching: If we already have a suggestion in session, don't call the API
+    cache_key = f"suggestion_{row_data['Material_ID']}"
+    if cache_key in st.session_state:
+        return st.session_state[cache_key]
+    
+    try:
+        prompt = MDM_STEWARD_PROMPT.format(
+            component=row_data['Component'], 
+            data_dict=row_data.to_dict()
+        )
+        response = call_gemini_with_retry(prompt)
+        
+        # Save to cache
+        st.session_state[cache_key] = response.text
+        return response.text
+        
+    except Exception as e:
+        return f"ERROR: {str(e)}"
+
+# 3. Helper Functions
 def get_db_connection():
     return sqlite3.connect(setup_db.DB_PATH)
 
@@ -42,9 +61,10 @@ def log_audit(material_id, action):
     conn.commit()
     conn.close()
 
-# 3. UI Layout
+# 4. UI Layout
 st.title("Enterprise Cognitive Product Master Orchestrator")
-# Phase 1: Executive Metrics
+
+# Metrics
 conn = get_db_connection()
 total_records = pd.read_sql("SELECT COUNT(*) as count FROM materials", conn).iloc[0]['count']
 pending_records = pd.read_sql("SELECT COUNT(*) as count FROM materials WHERE status = 'PENDING'", conn).iloc[0]['count']
@@ -53,10 +73,10 @@ conn.close()
 
 col1, col2, col3 = st.columns(3)
 col1.metric("Total Materials", total_records)
-col2.metric("Pending Review", pending_records, delta_color="inverse")
+col2.metric("Pending Review", pending_records)
 col3.metric("Successfully Synced", synced_records)
 
-st.divider() # Adds a clean visual separator
+st.divider()
 tabs = st.tabs(["Operations Dashboard", "Data Steward Review", "Audit Trail"])
 
 with tabs[0]:
@@ -78,25 +98,42 @@ with tabs[1]:
     conn.close()
     
     if not pending_df.empty:
-        st.dataframe(pending_df)
-        
-        # Selection
         mat_id = st.selectbox("Select Material", pending_df['Material_ID'].tolist())
         row = pending_df[pending_df['Material_ID'] == mat_id].iloc[0]
+        st.dataframe(row.to_frame())
         
-        # AI Logic Trigger
+        # AI Logic
         if st.button("Get AI Recommendation"):
-            with st.spinner("Gemini is analyzing..."):
+            with st.spinner("Gemini is consulting..."):
                 suggestion = get_ai_suggestion(row)
                 st.info(f"AI Suggestion: {suggestion}")
-                st.session_state['ai_suggestion'] = suggestion
 
-        # Approval logic using the AI's suggestion
-        new_val = st.text_input("Approved Value", value=st.session_state.get('ai_suggestion', ''))
+        new_val = st.text_input("Approved Value")
         
-        if st.button("Approve & Sync"):
-            # ... (keep your existing update and trigger_sap_integration logic) ...
-            st.success("Synced to SAP!")
+        # Action Buttons
+        col_btn1, col_btn2 = st.columns(2)
+        
+        with col_btn1:
+            if st.button("Approve & Sync"):
+                trigger_sap_integration(mat_id, new_val)
+                log_audit(mat_id, "APPROVED_AND_SYNCED")
+                conn = get_db_connection()
+                conn.execute("UPDATE materials SET status = 'SYNCED' WHERE Material_ID = ?", (mat_id,))
+                conn.commit()
+                conn.close()
+                st.success(f"Material {mat_id} synced!")
+                st.rerun()
+                
+        with col_btn2:
+            # NEW: Reject Functionality
+            if st.button("Reject Material"):
+                log_audit(mat_id, "REJECTED")
+                conn = get_db_connection()
+                conn.execute("UPDATE materials SET status = 'REJECTED' WHERE Material_ID = ?", (mat_id,))
+                conn.commit()
+                conn.close()
+                st.error(f"Material {mat_id} has been rejected.")
+                st.rerun()
     else:
         st.write("No pending materials.")
 
