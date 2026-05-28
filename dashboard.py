@@ -14,7 +14,7 @@ setup_db.init_db()
 
 # REPLACE WITH A NEW, SECURE API KEY
 genai.configure(api_key="AIzaSyAdTQnsNY7nvUH8Hh0_KViS5RZhq6rA_8g")
-model_name = "gemini-1.5-flash"
+model_name = "gemini-2.5-flash"
 
 try:
     model = genai.GenerativeModel(model_name)
