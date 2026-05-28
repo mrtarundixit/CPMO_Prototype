@@ -5,6 +5,7 @@ import setup_db
 from sap_gateway import trigger_sap_integration
 from datetime import datetime
 import google.generativeai as genai
+import os
 from prompts import MDM_STEWARD_PROMPT
 from tenacity import retry, wait_exponential, stop_after_attempt, retry_if_exception_type
 from google.api_core import exceptions
@@ -12,14 +13,15 @@ from google.api_core import exceptions
 # 1. Initialize DB and Model
 setup_db.init_db()
 
-# REPLACE WITH A NEW, SECURE API KEY
-genai.configure(api_key="AIzaSyAdTQnsNY7nvUH8Hh0_KViS5RZhq6rA_8g")
-model_name = "gemini-2.5-flash"
-
+# SECURE CONFIGURATION: Pulls from Streamlit Secrets
 try:
+    api_key = st.secrets["GOOGLE_API_KEY"]
+    genai.configure(api_key=api_key)
+    model_name = "gemini-2.5-flash"
     model = genai.GenerativeModel(model_name)
 except Exception as e:
-    st.error(f"Failed to load model {model_name}: {e}")
+    st.error("Configuration Error: API Key not found. Please set GOOGLE_API_KEY in your Streamlit secrets.")
+    st.stop()
 
 # 2. Resilient API Logic with Exponential Back-off
 @retry(
@@ -125,7 +127,6 @@ with tabs[1]:
                 st.rerun()
                 
         with col_btn2:
-            # NEW: Reject Functionality
             if st.button("Reject Material"):
                 log_audit(mat_id, "REJECTED")
                 conn = get_db_connection()
