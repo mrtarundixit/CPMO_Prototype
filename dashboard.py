@@ -25,8 +25,8 @@ except Exception as e:
 
 # 2. Resilient API Logic with Exponential Back-off
 @retry(
-    wait=wait_exponential(multiplier=1, min=2, max=10),
-    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=2, min=4, max=20),
+    stop=stop_after_attempt(5),
     retry=retry_if_exception_type(exceptions.ResourceExhausted)
 )
 def call_gemini_with_retry(prompt):
